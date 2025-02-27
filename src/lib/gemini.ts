@@ -2,10 +2,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize the Google Generativeai with your API key
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+const API_KEY = process.env.GEMINI_API_KEY || '';
 
 if (!API_KEY) {
-  console.error('Missing Gemini API key. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
+  console.error('Missing Gemini API key. Please set GEMINI_API_KEY in your environment variables.');
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
@@ -33,8 +33,13 @@ async function extractTextFromPDF(fileContent: ArrayBuffer): Promise<string> {
       Format the extracted data clearly with appropriate labels for each field.
     `;
     
+    // Add timeout for the API call
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timed out after 30 seconds')), 30000);
+    });
+    
     // Call the Gemini model with the PDF image
-    const result = await model.generateContent({
+    const modelPromise = model.generateContent({
       contents: [
         {
           role: 'user',
@@ -46,22 +51,29 @@ async function extractTextFromPDF(fileContent: ArrayBuffer): Promise<string> {
       ]
     });
     
+    // Race the model call against the timeout
+    const result = await Promise.race([modelPromise, timeoutPromise]);
+    
     const response = await result.response;
     return response.text();
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
-    throw new Error('Failed to extract text from PDF');
+    // Return a more specific error message that can be properly JSON-encoded
+    throw new Error(`PDF extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 // Helper function to convert ArrayBuffer to base64
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  try {
+    // Convert ArrayBuffer to Buffer
+    const nodeBuffer = Buffer.from(buffer);
+    // Convert Buffer to base64 string
+    return nodeBuffer.toString('base64');
+  } catch (error) {
+    console.error('Error converting ArrayBuffer to base64:', error);
+    throw new Error('Failed to process PDF data');
   }
-  return btoa(binary);
 }
 
 // Function to generate documentary credit draft
@@ -93,15 +105,25 @@ async function generateDocumentaryCredit(extractedData: string): Promise<string>
       Ensure the draft is compliant with UCP 600 standards and includes all standard legal language.
     `;
     
-    const result = await model.generateContent({
+    // Add timeout for the API call
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timed out after 30 seconds')), 30000);
+    });
+    
+    // Call the Gemini model
+    const modelPromise = model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
+    
+    // Race the model call against the timeout
+    const result = await Promise.race([modelPromise, timeoutPromise]);
     
     const response = await result.response;
     return response.text();
   } catch (error) {
     console.error('Error generating documentary credit draft:', error);
-    throw new Error('Failed to generate documentary credit draft');
+    // Return a more specific error message that can be properly JSON-encoded
+    throw new Error(`Draft generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

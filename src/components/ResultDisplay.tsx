@@ -32,8 +32,23 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
         });
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to generate draft');
+          let errorMessage = 'Failed to generate draft';
+          
+          // Try to parse error message from response
+          try {
+            const errorData = await response.json();
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch {
+            // If response is not valid JSON, use text content instead
+            const textError = await response.text();
+            if (textError) {
+              errorMessage = `Server error: ${textError.substring(0, 100)}`;
+            }
+          }
+          
+          throw new Error(errorMessage);
         }
         
         const data = await response.json();
@@ -51,14 +66,12 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
     }
   }, [extractedText]);
   
-  // No longer needed as we're using the TextDownloadButton component
-  
   if (isLoading) {
     return (
       <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 rounded-lg shadow-sm">
         <div className="flex items-center justify-center space-x-2">
           <div className="w-6 h-6 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
-          <p className="text-black">Processing PDF document...</p>
+          <p className="text-orange-500">Processing PDF document...</p>
         </div>
       </div>
     );
@@ -69,7 +82,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
       <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 rounded-lg shadow-sm">
         <div className="flex items-center justify-center space-x-2">
           <div className="w-6 h-6 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
-          <p className="text-gray-600">Generating documentary credit draft...</p>
+          <p className="text-green-600">Generating documentary credit draft...</p>
         </div>
       </div>
     );

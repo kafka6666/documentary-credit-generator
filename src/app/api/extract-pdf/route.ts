@@ -2,6 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractTextFromPDF } from '@/lib/gemini';
 
+export const config = {
+  api: {
+    // Increase the response size limit and timeout
+    responseLimit: '8mb',
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -25,8 +35,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ extractedText }, { status: 200 });
   } catch (error) {
     console.error('Error processing PDF:', error);
+    // Ensure we're returning a properly formatted JSON response
     return NextResponse.json(
-      { error: 'Failed to process PDF' },
+      { error: error instanceof Error ? error.message : 'Failed to process PDF' },
       { status: 500 }
     );
   }

@@ -2,6 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDocumentaryCredit } from '@/lib/gemini';
 
+export const config = {
+  api: {
+    // Increase the response size limit and timeout
+    responseLimit: '8mb',
+  },
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -20,8 +27,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ draftText }, { status: 200 });
   } catch (error) {
     console.error('Error generating draft:', error);
+    // Ensure we're returning a properly formatted JSON response
     return NextResponse.json(
-      { error: 'Failed to generate documentary credit draft' },
+      { error: error instanceof Error ? error.message : 'Failed to generate documentary credit draft' },
       { status: 500 }
     );
   }

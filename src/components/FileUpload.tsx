@@ -37,8 +37,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, setIsLoading })
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to extract text from PDF');
+        let errorMessage = 'Failed to extract text from PDF';
+        
+        // Try to parse error message from response
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // If response is not valid JSON, use text content instead
+          const textError = await response.text();
+          if (textError) {
+            errorMessage = `Server error: ${textError.substring(0, 100)}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
