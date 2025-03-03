@@ -7,9 +7,16 @@ import { useDropzone } from 'react-dropzone';
 interface FileUploadProps {
   onFileUploaded: (extractedText: string) => void;
   setIsLoading: (isLoading: boolean) => void;
+  isAuthenticated?: boolean;
+  redirectToSignIn?: () => void;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, setIsLoading }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ 
+  onFileUploaded, 
+  setIsLoading,
+  isAuthenticated = true,
+  redirectToSignIn 
+}) => {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -20,6 +27,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, setIsLoading })
     // Check if file is PDF
     if (!file.type.includes('pdf')) {
       setUploadError('Please upload a PDF file');
+      return;
+    }
+    
+    // If user is not authenticated, redirect to sign in
+    if (!isAuthenticated && redirectToSignIn) {
+      redirectToSignIn();
       return;
     }
     
@@ -64,7 +77,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, setIsLoading })
     } finally {
       setIsLoading(false);
     }
-  }, [onFileUploaded, setIsLoading]);
+  }, [onFileUploaded, setIsLoading, isAuthenticated, redirectToSignIn]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -100,12 +113,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, setIsLoading })
           </svg>
           <p className="text-lg font-medium">Drag and drop your PDF file here</p>
           <p className="text-sm text-gray-500">or click to browse files</p>
-          <p className="text-xs text-gray-400">PDF files only</p>
+          {!isAuthenticated && (
+            <p className="text-xs text-blue-500 mt-2">
+              You&#39;ll need to sign in to process documents
+            </p>
+          )}
         </div>
       </div>
-      
+
       {uploadError && (
-        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+        <div className="mt-4 p-3 bg-red-900 border border-red-700 text-white rounded text-sm">
           {uploadError}
         </div>
       )}
