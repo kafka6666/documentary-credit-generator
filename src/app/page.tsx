@@ -42,15 +42,16 @@ export default function Home() {
             />
           </section>
 
-          {extractedText && (
-            <section>
-              <h2 className="text-xl font-semibold mb-4">Generated Draft</h2>
+          {/* Fixed height container for results to prevent layout shift */}
+          <section className="min-h-[300px]">
+            <h2 className="text-xl font-semibold mb-4">Generated Draft</h2>
+            {extractedText && (
               <ResultDisplay 
                 extractedText={extractedText} 
                 isLoading={isLoading} 
               />
-            </section>
-          )}
+            )}
+          </section>
         </div>
       </div>
     </main>

@@ -82,67 +82,80 @@ export default function UserNav() {
     }
   }, [signingOut]);
 
+  // Fixed height container for all auth states to prevent layout shift
+  const navContainerClasses = "h-[48px] flex items-center";
+
   if (loading) {
     return (
-      <div className="h-10 w-24 animate-pulse bg-gray-800 rounded"></div>
+      <div className={navContainerClasses}>
+        <div className="h-10 w-24 animate-pulse bg-gray-800 rounded"></div>
+      </div>
     );
   }
 
   if (signingOut) {
     return (
-      <div className="flex items-center space-x-2">
-        <div className="h-5 w-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
-        <span className="text-sm text-white">Signing Out...</span>
+      <div className={navContainerClasses}>
+        <div className="flex items-center space-x-2">
+          <div className="h-5 w-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+          <span className="text-sm text-white">Signing Out...</span>
+        </div>
       </div>
     );
   }
 
   if (signOutSuccess) {
     return (
-      <div className="flex items-center space-x-2">
-        <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-        <span className="text-sm text-white">Signed Out Successfully!</span>
+      <div className={navContainerClasses}>
+        <div className="flex items-center space-x-2">
+          <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="text-sm text-white">Signed Out Successfully!</span>
+        </div>
       </div>
     );
   }
 
-  return user ? (
-    <div className="flex items-center space-x-4">
-      <div className="flex items-center">
-        <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-          {user.email ? user.email[0].toUpperCase() : '?'}
+  return (
+    <div className={navContainerClasses}>
+      {user ? (
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center">
+            <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+              {user.email ? user.email[0].toUpperCase() : '?'}
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-white font-medium">
+                Hello, {user.email?.split('@')[0] || 'User'}
+              </p>
+              <p className="text-xs text-gray-400">{user.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+            disabled={signingOut}
+          >
+            Sign Out
+          </button>
         </div>
-        <div className="ml-3">
-          <p className="text-sm text-white font-medium">
-            Hello, {user.email?.split('@')[0] || 'User'}
-          </p>
-          <p className="text-xs text-gray-400">{user.email}</p>
+      ) : (
+        <div className="flex items-center space-x-4">
+          <Link
+            href="/auth/sign-in"
+            className="text-sm text-blue-500 hover:underline"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/auth/sign-up"
+            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Sign Up
+          </Link>
         </div>
-      </div>
-      <button
-        onClick={handleSignOut}
-        className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-        disabled={signingOut}
-      >
-        Sign Out
-      </button>
-    </div>
-  ) : (
-    <div className="flex items-center space-x-4">
-      <Link
-        href="/auth/sign-in"
-        className="text-sm text-blue-500 hover:underline"
-      >
-        Sign In
-      </Link>
-      <Link
-        href="/auth/sign-up"
-        className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-      >
-        Sign Up
-      </Link>
+      )}
     </div>
   );
 }

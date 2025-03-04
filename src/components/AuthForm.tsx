@@ -38,11 +38,14 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
         {type === 'signin' ? 'Sign In' : 'Sign Up'}
       </h2>
       
-      {error && (
-        <div className="bg-red-900 border border-red-700 text-white px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+      {/* Fixed height error container to prevent layout shift */}
+      <div className="h-[60px] mb-4">
+        {error && (
+          <div className="bg-red-900 border border-red-700 text-white px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
@@ -78,7 +81,7 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 font-medium"
+          className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 font-medium h-[50px]"
         >
           {loading
             ? 'Loading...'

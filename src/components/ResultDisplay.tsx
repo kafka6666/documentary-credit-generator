@@ -66,9 +66,12 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
     }
   }, [extractedText]);
   
+  // Fixed height container for all states to prevent layout shift
+  const containerClasses = "w-full max-w-4xl mx-auto min-h-[120px] flex items-center justify-center";
+  
   if (isLoading) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 rounded-lg shadow-sm">
+      <div className={`${containerClasses} p-6 bg-gray-50 rounded-lg shadow-sm`}>
         <div className="flex items-center justify-center space-x-2">
           <div className="w-6 h-6 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
           <p className="text-orange-500">Processing PDF document...</p>
@@ -79,7 +82,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
   
   if (generatingDraft) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 rounded-lg shadow-sm">
+      <div className={`${containerClasses} p-6 bg-gray-50 rounded-lg shadow-sm`}>
         <div className="flex items-center justify-center space-x-2">
           <div className="w-6 h-6 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
           <p className="text-green-600">Generating documentary credit draft...</p>
@@ -90,7 +93,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
   
   if (error) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-6 bg-red-50 rounded-lg shadow-sm text-red-700">
+      <div className={`${containerClasses} p-6 bg-red-50 rounded-lg shadow-sm text-red-700`}>
         <p className="font-medium">Error:</p>
         <p>{error}</p>
       </div>
@@ -98,7 +101,9 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
   }
   
   if (!draftText) {
-    return null;
+    return (
+      <div className={`${containerClasses} opacity-0`}></div>
+    );
   }
 
   return (

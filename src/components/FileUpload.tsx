@@ -91,9 +91,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
     <div className="w-full max-w-xl mx-auto mb-8">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors h-[180px] flex items-center justify-center ${
           isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
         }`}
+        style={{ minHeight: '180px' }}
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center justify-center space-y-3">
@@ -103,6 +104,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            width="48"
+            height="48"
           >
             <path
               strokeLinecap="round"
@@ -121,11 +124,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </div>
       </div>
 
-      {uploadError && (
-        <div className="mt-4 p-3 bg-red-900 border border-red-700 text-white rounded text-sm">
-          {uploadError}
-        </div>
-      )}
+      {/* Fixed height container for error message to prevent layout shift */}
+      <div className="h-[60px] mt-4">
+        {uploadError && (
+          <div className="p-3 bg-red-900 border border-red-700 text-white rounded text-sm">
+            {uploadError}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
