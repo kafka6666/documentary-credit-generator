@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthForm from '@/components/AuthForm';
-import { signUp } from '@/lib/actions';
+import { signUp } from '@/lib/actions/index';
 
 export default function SignUp() {
   const [message, setMessage] = useState<string | null>(null);

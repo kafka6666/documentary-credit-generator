@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { signOut } from '@/lib/actions';
+import { signOut } from '@/lib/actions/index';
 import { useRouter } from 'next/navigation';
 
 export default function UserNav() {
@@ -12,50 +12,71 @@ export default function UserNav() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutSuccess, setSignOutSuccess] = useState(false);
-  const supabase = createClient();
   const router = useRouter();
+  
+  // Create the Supabase client only once
+  const supabase = createClient();
+
+  // Function to fetch and update user state with better error handling
+  const refreshUserState = async () => {
+    try {
+      // Only attempt to get user if we're not already signing out
+      if (signingOut) return;
+      
+      const { data, error } = await supabase.auth.getSession();
+      
+      // If there's no session or an error, the user is not logged in
+      if (!data.session || error) {
+        setUser(null);
+        return;
+      }
+      
+      // If we have a session, get the user data
+      setUser(data.session.user);
+    } catch (error) {
+      // Don't log expected auth errors to avoid console spam
+      if (error && typeof error === 'object' && 'name' in error && 
+          error.name === 'AuthSessionMissingError') {
+        // This is an expected error when not logged in, just set user to null
+        setUser(null);
+      } else {
+        console.error('Unexpected error getting user:', error);
+        setUser(null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data } = await supabase.auth.getUser();
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error getting user:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getUser();
+    // Initial user fetch - only once on component mount
+    refreshUserState();
+    
+    // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
 
         if (event === 'SIGNED_IN') {
-          // When user signs in, update state, refresh the router and update UI accordingly
+          // When user signs in, update state and force a page refresh
           setSigningOut(false);
           setUser(session?.user || null);
           setLoading(false);
-          router.refresh(); // Explicitly refresh the router for immediate UI update
-          // Remove the delay before router.push to ensure UI updates immediately after refresh
-          router.push('/');
+          
+          // Force a hard refresh of the page to ensure all components update
+          window.location.href = '/';
         } else if (event === 'SIGNED_OUT') {
           // When we detect a sign out event, update UI accordingly
           setUser(null);
           setSigningOut(false);
           setSignOutSuccess(true);
-          router.refresh();
+          
           // Reset success message after 3 seconds
           setTimeout(() => setSignOutSuccess(false), 3000);
         } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
           // For other events, update user if not in process of signing out
-          if (!signingOut) {
-            setUser(session?.user || null);
+          if (!signingOut && session) {
+            setUser(session.user);
             setLoading(false);
           }
         }
@@ -65,7 +86,9 @@ export default function UserNav() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, supabase.auth, signingOut]);
+  }, [supabase.auth, signingOut]);
+
+  // Don't add additional effect for focus events - this was causing too many auth checks
 
   const handleSignOut = async () => {
     try {
@@ -84,13 +107,10 @@ export default function UserNav() {
       // Then call server action
       await signOut();
 
-      // Refresh the router to update UI
-      router.refresh();
-
       // Use a more gentle approach for navigation
       // Delay slightly to allow the signout message to be seen
       setTimeout(() => {
-        router.push('/');
+        window.location.href = '/';
       }, 1000);
     } catch (error) {
       console.error('Error signing out:', error);

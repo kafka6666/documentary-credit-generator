@@ -19,11 +19,12 @@ async function signIn(formData: FormData) {
     return { error: error.message };
   }
 
-  // Ensure cookies are properly set before redirecting
-  // Using cookies() directly as it's not a Promise
-  (await cookies()).getAll();
+  // Ensure cookies are properly set
+  const cookieStore = await cookies();
+  cookieStore.getAll(); // Force cookies to be processed
 
-  redirect('/');
+  // Return success instead of redirecting to let the client handle navigation
+  return { success: true };
 }
 
 async function signUp(formData: FormData) {

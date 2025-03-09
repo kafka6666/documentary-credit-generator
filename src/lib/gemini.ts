@@ -54,6 +54,10 @@ async function extractTextFromPDF(fileContent: ArrayBuffer): Promise<string> {
     // Race the model call against the timeout
     const result = await Promise.race([modelPromise, timeoutPromise]);
     
+    // for obtaining token usage by the Gemini model
+    const totalTokenUsage = result.response.usageMetadata?.totalTokenCount;
+    console.log('Total token usage:', totalTokenUsage);
+    
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -275,6 +279,10 @@ async function generateDocumentaryCredit(extractedData: string): Promise<string>
     
     // Race the model call against the timeout
     const result = await Promise.race([modelPromise, timeoutPromise]);
+    
+    // for obtaining token usage by the Gemini model
+    const totalTokenUsage = result.response.usageMetadata?.totalTokenCount;
+    console.log('Total token usage:', totalTokenUsage);
     
     const response = await result.response;
     return response.text();

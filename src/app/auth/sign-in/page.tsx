@@ -4,11 +4,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AuthForm from '@/components/AuthForm';
-import { signIn } from '@/lib/actions';
+import { signIn } from '@/lib/actions/index';
+import { createClient } from '@/utils/supabase/client';
 
 export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
 
   // Check if there's a signup success message
   useEffect(() => {
@@ -24,31 +27,38 @@ export default function SignIn() {
     // Clear any previous messages
     setErrorMessage(null);
     setSuccessMessage(null);
-
-    // Create a FormData object to pass to the server action
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
+    setIsLoading(true);
 
     try {
-      const result = await signIn(formData);
+      // First try client-side sign-in to set cookies properly
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      // If there's an error from the server action
-      if (result && 'error' in result) {
-        throw new Error(result.error);
+      if (error) {
+        throw new Error(error.message);
       }
 
-      // The server action will handle redirect on success
-      // But we'll set a success message for a brief moment
-      setSuccessMessage('Sign in successful! Redirecting...');
+      if (!data.session) {
+        throw new Error('Failed to create session');
+      }
 
-      // Redirect will be handled by the server action
+      // Set success message
+      setSuccessMessage('Sign in successful! Redirecting...');
+      
+      // Force a full page refresh to ensure all components update
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message);
-        throw error; // Re-throw so AuthForm can handle it
+      } else {
+        setErrorMessage('An unexpected error occurred');
       }
-      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,23 +118,10 @@ export default function SignIn() {
           </div>
         )}
 
-        {successMessage && (
-          <div className="mt-4 p-3 bg-green-900 border border-green-700 text-white rounded flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2 text-green-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            {successMessage}
+        {isLoading && (
+          <div className="mt-4 p-3 bg-blue-900 border border-blue-700 text-white rounded flex items-center justify-center">
+            <div className="h-5 w-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin mr-2"></div>
+            <span>Signing in...</span>
           </div>
         )}
       </div>
