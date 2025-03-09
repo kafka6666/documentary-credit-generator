@@ -3,14 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AuthForm from '@/components/AuthForm';
-import { signIn } from '@/lib/actions/index';
 import { createClient } from '@/utils/supabase/client';
 
 export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const supabase = createClient();
 
   // Check if there's a signup success message
@@ -37,20 +38,36 @@ export default function SignIn() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        // Set error message and throw error to prevent further execution
+        setErrorMessage(error.message);
+        setIsLoading(false);
+        return; // Stop execution here instead of throwing
       }
 
       if (!data.session) {
-        throw new Error('Failed to create session');
+        setErrorMessage('Failed to create session');
+        setIsLoading(false);
+        return;
+      }
+
+      // Store user data in localStorage for immediate UI update
+      if (typeof window !== 'undefined' && data.session.user) {
+        const userData = {
+          id: data.session.user.id,
+          email: data.session.user.email,
+          lastUpdated: new Date().getTime()
+        };
+        localStorage.setItem('userNavState', JSON.stringify(userData));
       }
 
       // Set success message
       setSuccessMessage('Sign in successful! Redirecting...');
       
-      // Force a full page refresh to ensure all components update
+      // Use Next.js router for client-side navigation instead of full page refresh
       setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+        router.push('/');
+        router.refresh(); // Refresh the current route to update server components
+      }, 800);
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message);
@@ -96,27 +113,12 @@ export default function SignIn() {
           </div>
         )}
 
-        <AuthForm type="signin" onSubmit={handleSignIn} />
-
-        {errorMessage && (
-          <div className="mt-4 p-3 bg-red-900 border border-red-700 text-white rounded flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2 text-red-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-            {errorMessage}
-          </div>
-        )}
+        <AuthForm 
+          type="signin" 
+          onSubmit={handleSignIn} 
+          isLoading={isLoading}
+          initialError={errorMessage}
+        />
 
         {isLoading && (
           <div className="mt-4 p-3 bg-blue-900 border border-blue-700 text-white rounded flex items-center justify-center">

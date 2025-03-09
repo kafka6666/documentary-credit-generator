@@ -9,6 +9,8 @@ import { signUp } from '@/lib/actions/index';
 
 export default function SignUp() {
   const [message, setMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   
   // Check for any success message stored in localStorage on component mount
@@ -22,6 +24,10 @@ export default function SignUp() {
   }, []);
   
   const handleSignUp = async (email: string, password: string) => {
+    // Clear any previous error messages
+    setErrorMessage(null);
+    setIsLoading(true);
+    
     // Create a FormData object to pass to the server action
     const formData = new FormData();
     formData.append('email', email);
@@ -31,7 +37,10 @@ export default function SignUp() {
       const result = await signUp(formData);
       
       if (result && 'error' in result) {
-        throw new Error(result.error);
+        // Handle validation errors
+        setErrorMessage(result.error);
+        setIsLoading(false);
+        return;
       }
       
       // If we get here, it means the redirect didn't happen (client-side rendering)
@@ -43,10 +52,14 @@ export default function SignUp() {
       setMessage(successMessage);
       
     } catch (error) {
+      // Handle unexpected errors
       if (error instanceof Error) {
-        throw error; // Re-throw so AuthForm can handle it
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('An unexpected error occurred during sign up');
       }
-      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -83,7 +96,12 @@ export default function SignUp() {
             </button>
           </div>
         ) : (
-          <AuthForm type="signup" onSubmit={handleSignUp} />
+          <AuthForm 
+            type="signup" 
+            onSubmit={handleSignUp} 
+            initialError={errorMessage}
+            isLoading={isLoading}
+          />
         )}
       </div>
     </div>

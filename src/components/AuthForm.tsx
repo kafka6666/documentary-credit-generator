@@ -1,33 +1,51 @@
 // src/components/AuthForm.tsx
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface AuthFormProps {
   type: 'signin' | 'signup';
   onSubmit: (email: string, password: string) => Promise<void>;
+  initialError?: string | null;
+  isLoading?: boolean;
 }
 
-export default function AuthForm({ type, onSubmit }: AuthFormProps) {
+export default function AuthForm({ 
+  type, 
+  onSubmit, 
+  initialError = null, 
+  isLoading = false 
+}: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(initialError);
+  const [loading, setLoading] = useState(isLoading);
+
+  // Update error state when initialError prop changes
+  useEffect(() => {
+    setError(initialError);
+  }, [initialError]);
+
+  // Update loading state when isLoading prop changes
+  useEffect(() => {
+    setLoading(isLoading);
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (loading) return; // Prevent multiple submissions
+    
     setError(null);
     setLoading(true);
 
     try {
       await onSubmit(email, password);
-      router.push('/');
-    } catch (err: Error | unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred during authentication');
-    } finally {
+      // Note: We don't navigate here anymore, the parent component handles that
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during authentication';
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -60,6 +78,7 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
             required
             className="w-full px-4 py-3 bg-gray-900 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter your email"
+            disabled={loading}
           />
         </div>
 
@@ -75,6 +94,7 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
             required
             className="w-full px-4 py-3 bg-gray-900 border border-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter your password"
+            disabled={loading}
           />
         </div>
 

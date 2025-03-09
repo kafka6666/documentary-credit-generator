@@ -27,8 +27,23 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // refreshing the auth token
-  await supabase.auth.getUser()
+  try {
+    // refreshing the auth token
+    await supabase.auth.getUser()
+  } catch (error) {
+    // Silently handle auth errors (like missing refresh token)
+    // This prevents console errors for unauthenticated users
+    if (error && typeof error === 'object' && 'code' in error) {
+      const authError = error as { code: string };
+      if (authError.code === 'refresh_token_not_found') {
+        // Just continue without refreshing the session
+        // This is normal for unauthenticated users
+      } else {
+        // Log other unexpected auth errors
+        console.error('Unexpected auth error in middleware:', error);
+      }
+    }
+  }
 
   return supabaseResponse
 }

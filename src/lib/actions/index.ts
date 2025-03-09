@@ -46,20 +46,28 @@ async function signUp(formData: FormData) {
 }
 
 async function signOut() {
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    
+    // Sign out from Supabase Auth
+    const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    console.error('Error during server-side sign out:', error);
-    return { error: error.message };
+    if (error) {
+      console.error('Error during server-side sign out:', error);
+      return { error: error.message };
+    }
+    
+    // In server actions, we can't directly manipulate cookies the same way as in client-side code
+    // The Supabase client should handle clearing the auth cookies for us
+    // We'll just return success and let the client handle the UI updates
+    
+    return { success: true };
+  } catch (err) {
+    console.error('Unexpected error during sign out:', err);
+    // Still return success so the client can proceed with UI updates
+    // This prevents the user from getting stuck in a broken state
+    return { success: true, warning: 'Partial sign out completed' };
   }
-
-  // Clear cookies to ensure session is fully removed
-  // Using cookies() directly as it's not a Promise
-  (await cookies()).getAll();
-
-  // Return success instead of redirecting to let the client handle navigation
-  return { success: true };
 }
 
 export { signIn, signUp, signOut };
