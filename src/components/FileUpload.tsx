@@ -14,7 +14,7 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ 
   onFileUploaded, 
   setIsLoading,
-  isAuthenticated = true,
+  isAuthenticated = false,
   redirectToSignIn 
 }) => {
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -31,8 +31,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
     
     // If user is not authenticated, redirect to sign in
-    if (!isAuthenticated && redirectToSignIn) {
-      redirectToSignIn();
+    if (!isAuthenticated) {
+      setUploadError('Authentication required. Please sign in to process documents.');
+      if (redirectToSignIn) {
+        redirectToSignIn();
+      }
       return;
     }
     
@@ -91,10 +94,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
     <div className="w-full max-w-xl mx-auto mb-8">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors h-[180px] flex items-center justify-center ${
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors flex items-center justify-center ${
           isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
         }`}
-        style={{ minHeight: '180px' }}
+        style={{ height: '200px', minHeight: '200px' }}
+        data-component-name="FileUpload"
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center justify-center space-y-3">
@@ -116,20 +120,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </svg>
           <p className="text-lg font-medium">Drag and drop your PDF file here</p>
           <p className="text-sm text-gray-500">or click to browse files</p>
-          {!isAuthenticated && (
-            <p className="text-xs text-blue-500 mt-2">
-              You&#39;ll need to sign in to process documents
-            </p>
-          )}
+          {/* Reserve space for the auth message to prevent layout shift */}
+          <div className="h-6">
+            {!isAuthenticated && (
+              <p className="text-xs text-blue-500">
+                You&#39;ll need to sign in to process documents
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Fixed height container for error message to prevent layout shift */}
-      <div className="h-[60px] mt-4">
-        {uploadError && (
-          <div className="p-3 bg-red-900 border border-red-700 text-white rounded text-sm">
+      <div className="h-16 mt-4 flex items-center justify-center">
+        {uploadError ? (
+          <div className="p-3 bg-red-900 border border-red-700 text-white rounded text-sm w-full">
             {uploadError}
           </div>
+        ) : (
+          <div className="hidden">Placeholder</div>
         )}
       </div>
     </div>

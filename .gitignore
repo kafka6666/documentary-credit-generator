@@ -10,6 +10,23 @@
 !.yarn/releases
 !.yarn/versions
 
+# supabase
+/supabase
+/supabase/
+/supabase/config.toml
+/supabase/.gitignore
+/supabase/.vscode
+/supabase/README.md
+/supabase/branches
+/supabase/temp
+/supabase/patches
+/supabase/plugins
+/supabase/releases
+/supabase/versions
+
+# vscode
+/.vscode
+
 # testing
 /coverage
 

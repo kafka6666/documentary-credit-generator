@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import Link from "next/link";
 import ClientUserNav from "@/components/ClientUserNav";
+import Logo from "@/components/Logo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -64,11 +64,7 @@ export default function RootLayout({
       >
         <header className="py-4 px-6 border-b sticky top-0 bg-black z-50 h-[72px]">
           <div className="max-w-5xl mx-auto flex justify-between items-center">
-            <Link href="/">
-              <h1 className="text-xl font-bold hover:text-blue-500 transition-colors">
-                Documentary Credit Generator
-              </h1>
-            </Link>
+            <Logo />
             <ClientUserNav />
           </div>
         </header>

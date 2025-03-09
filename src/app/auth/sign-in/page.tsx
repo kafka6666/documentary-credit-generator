@@ -119,13 +119,6 @@ export default function SignIn() {
           isLoading={isLoading}
           initialError={errorMessage}
         />
-
-        {isLoading && (
-          <div className="mt-4 p-3 bg-blue-900 border border-blue-700 text-white rounded flex items-center justify-center">
-            <div className="h-5 w-5 border-t-2 border-blue-500 border-solid rounded-full animate-spin mr-2"></div>
-            <span>Signing in...</span>
-          </div>
-        )}
       </div>
     </div>
   );

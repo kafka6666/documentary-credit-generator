@@ -13,12 +13,29 @@ export default function Home() {
   const supabase = createClient();
   
   useEffect(() => {
+    // Initial auth check
     const checkAuth = async () => {
       const { data } = await supabase.auth.getUser();
       setIsAuthenticated(!!data.user);
     };
     
     checkAuth();
+    
+    // Subscribe to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Update authentication state based on session
+      setIsAuthenticated(!!session?.user);
+      
+      // Clear results when user signs out
+      if (event === 'SIGNED_OUT') {
+        setExtractedText('');
+      }
+    });
+    
+    // Cleanup subscription when component unmounts
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [supabase.auth]);
 
   return (

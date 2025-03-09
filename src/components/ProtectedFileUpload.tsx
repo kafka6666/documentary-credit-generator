@@ -13,7 +13,11 @@ interface ProtectedFileUploadProps {
 const ProtectedFileUpload: React.FC<ProtectedFileUploadProps> = ({ onFileUploaded, setIsLoading }) => {
   return (
     <ProtectedPage>
-      <FileUpload onFileUploaded={onFileUploaded} setIsLoading={setIsLoading} />
+      <FileUpload 
+        onFileUploaded={onFileUploaded} 
+        setIsLoading={setIsLoading} 
+        isAuthenticated={true} 
+      />
     </ProtectedPage>
   );
 };
