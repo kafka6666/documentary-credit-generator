@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
@@ -12,6 +13,7 @@ export default function UserNav() {
   const [signOutSuccess, setSignOutSuccess] = useState(false);
   const initialLoadComplete = useRef(false);
   const authChangeInProgress = useRef(false);
+  const router = useRouter();
   
   // Create the Supabase client only once
   const supabase = createClient();
@@ -196,18 +198,16 @@ export default function UserNav() {
         throw error;
       }
       
-      // Skip the server action call since it's causing errors
-      // The middleware will handle session cleanup on the next request
-      
       // Show success message
       setUser(null);
       setSigningOut(false);
       setSignOutSuccess(true);
       
-      // Delay navigation slightly to allow the success message to be seen
+      // Use client-side navigation instead of full page refresh
       setTimeout(() => {
-        // Use a full page refresh to ensure all state is cleared
-        window.location.href = '/';
+        // Use Next.js router for smoother navigation
+        router.push('/');
+        router.refresh(); // Refresh the current route to update server components
       }, 1500);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -221,9 +221,10 @@ export default function UserNav() {
         localStorage.removeItem('userNavState');
       }
       
-      // Force a page refresh as a last resort
+      // Use client-side navigation as a fallback
       setTimeout(() => {
-        window.location.href = '/';
+        router.push('/');
+        router.refresh();
       }, 1000);
     }
   };
