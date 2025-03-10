@@ -33,33 +33,60 @@ async function extractTextFromPDF(fileContent: ArrayBuffer): Promise<string> {
       Format the extracted data clearly with appropriate labels for each field.
     `;
     
-    // Add timeout for the API call
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Request timed out after 60 seconds')), 60000);
-    });
+    // Increased timeout from 60 to 120 seconds
+    const TIMEOUT_MS = 120000;
+    const MAX_RETRIES = 2;
+    let retryCount = 0;
+    let lastError: Error | null = null;
     
-    // Call the Gemini model with the PDF image
-    const modelPromise = model.generateContent({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
-            { inlineData: { mimeType: 'application/pdf', data: base64Content } }
+    // Retry logic for handling transient errors
+    while (retryCount <= MAX_RETRIES) {
+      try {
+        // Add timeout for the API call
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error(`Request timed out after ${TIMEOUT_MS/1000} seconds`)), TIMEOUT_MS);
+        });
+        
+        // Call the Gemini model with the PDF image
+        const modelPromise = model.generateContent({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: 'application/pdf', data: base64Content } }
+              ]
+            }
           ]
+        });
+        
+        // Race the model call against the timeout
+        const result = await Promise.race([modelPromise, timeoutPromise]);
+        
+        // for obtaining token usage by the Gemini model
+        const totalTokenUsage = result.response.usageMetadata?.totalTokenCount;
+        console.log('Total token usage:', totalTokenUsage);
+        
+        const response = await result.response;
+        return response.text();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.error(`PDF extraction attempt ${retryCount + 1}/${MAX_RETRIES + 1} failed:`, lastError);
+        
+        // If we've reached max retries, throw the error
+        if (retryCount === MAX_RETRIES) {
+          throw new Error(`PDF extraction failed after ${MAX_RETRIES + 1} attempts: ${lastError.message}`);
         }
-      ]
-    });
+        
+        // Wait before retrying (exponential backoff)
+        const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        retryCount++;
+      }
+    }
     
-    // Race the model call against the timeout
-    const result = await Promise.race([modelPromise, timeoutPromise]);
-    
-    // for obtaining token usage by the Gemini model
-    const totalTokenUsage = result.response.usageMetadata?.totalTokenCount;
-    console.log('Total token usage:', totalTokenUsage);
-    
-    const response = await result.response;
-    return response.text();
+    // This should never be reached due to the throw in the catch block above
+    throw lastError || new Error('PDF extraction failed for unknown reasons');
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     // Return a more specific error message that can be properly JSON-encoded
@@ -141,7 +168,7 @@ async function generateDocumentaryCredit(extractedData: string): Promise<string>
       1. Review all uploaded PDF documents thoroughly to extract key information.
       2. Identify trade transaction details including parties, goods, amounts, and dates.
       3. Map the extracted information to the appropriate SWIFT MT700 fields.
-      4. Format the message exactly according to SWIFT standards as shown in the example.
+      4. Format the message exactly according to SWIFT standards as shown in the "Example Output" attached below.
       5. Ensure all mandatory fields are completed.
       6. Use proper field tags and maintain correct formatting for multiline fields.
       7. Output the complete SWIFT MT700 message in text format.
@@ -155,16 +182,17 @@ async function generateDocumentaryCredit(extractedData: string): Promise<string>
       5. For fields with numbered items (like documents required), use the format "1)..." with parenthesis
       6. Format the currency amount without spaces between the currency code and amount (e.g., USD78897,00)
       7. Use commas (,) not periods (.) as decimal separators in amounts
-      8. Truncate all texts before field no. 27 and after field no. 72Z
-      9. In field 48, use the format "21/from the date of shipment"
-      10.In field 49, always use "WITHOUT" but if it is specified as confirmed L/C, use "CONFIRM"
-      11.In field 72Z, always put beneficiary contact information, e.g., telephone, fax, email.
+      8. Use the format "INPUT THE LC NUMBER HERE" alwaysin field 20
+      9. Truncate all texts before field no. 27 and after field no. 72Z
+      10. In field 48, use the format "21/from the date of shipment"
+      11. In field 49, always use "WITHOUT" but if it is specified as confirmed L/C, use "CONFIRM"
+      12.In field 72Z, always put beneficiary contact information, e.g., telephone, fax, email.
 
       Example Output:
 
       :27:1/1
       :40A:IRREVOCABLE
-      :20:175225010064
+      :20:INPUT THE LC NUMBER HERE
       :31C:250114
       :40E:UCP LATEST VERSION
       :31D:250413 SINGAPORE
