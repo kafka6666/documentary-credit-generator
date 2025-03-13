@@ -13,7 +13,7 @@ const Footer = () => {
           <div>
             <h3 className="text-white font-medium mb-4">Autogen AI</h3>
             <p className="text-sm">
-              Automating the manual monotonous manual work and bringing more productivity with the help of various powerful LLMs such as OpenAI, Anthropic, Google Gemini and more.
+              Automating the monotonous manual work in your office and bringing more productivity in your work-life with the help of various powerful LLMs such as OpenAI, Anthropic, Google Gemini and more.
             </p>
           </div>
           

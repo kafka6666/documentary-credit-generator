@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import TextDownloadButton from '../components/TextDownloadButton';
+import EditTextButton from '../components/EditTextButton';
 
 interface ResultDisplayProps {
   extractedText: string;
@@ -149,6 +150,10 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
             <TextDownloadButton 
               content={draftText} 
               fileName="documentary-credit-draft.txt" 
+            />
+            <EditTextButton
+              content={draftText}
+              onSave={(editedContent) => setDraftText(editedContent)}
             />
           </div>
         </div>
