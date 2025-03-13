@@ -1,7 +1,7 @@
 // src/components/ResultDisplay.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import TextDownloadButton from '../components/TextDownloadButton';
 import EditTextButton from '../components/EditTextButton';
 
@@ -15,6 +15,21 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
   const [generatingDraft, setGeneratingDraft] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [generationTimer, setGenerationTimer] = useState<number>(0);
+  const processedTextRef = useRef<string>(''); // Track already processed text
+  
+  // Format display text to ensure proper field separation
+  const formatDisplayText = (text: string): string => {
+    if (!text) return '';
+    
+    // Process line by line to ensure proper field separation
+    return text.split('\n').map(line => {
+      // Check if 31C and 40E are on the same line and separate them
+      if (line.includes(':31C:') && line.includes(':40E:')) {
+        return line.replace(/(:31C:[^:]*)(:40E:)/, '$1\n$2');
+      }
+      return line;
+    }).join('\n');
+  };
   
   // Timer for draft generation
   useEffect(() => {
@@ -42,9 +57,17 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
   };
   
   useEffect(() => {
-    // Generate draft when extracted text changes
+    // Generate draft when extracted text changes, but only if it's different from what we've processed
     const generateDraft = async () => {
       if (!extractedText) return;
+      
+      // Skip if we've already processed this exact text or if we're in the middle of generating
+      if (extractedText === processedTextRef.current || generatingDraft) {
+        return;
+      }
+      
+      // Save the current text we're processing
+      processedTextRef.current = extractedText;
       
       setGeneratingDraft(true);
       setError(null);
@@ -83,15 +106,24 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
       } catch (error) {
         console.error('Error generating draft:', error);
         setError(error instanceof Error ? error.message : 'Failed to generate draft');
+        // Reset the processed text ref on error so we can try again
+        processedTextRef.current = '';
       } finally {
         setGeneratingDraft(false);
       }
     };
     
-    if (extractedText) {
-      generateDraft();
-    }
-  }, [extractedText]);
+    // Use setTimeout to debounce multiple rapid calls
+    const debounceTimeout = setTimeout(() => {
+      if (extractedText) {
+        generateDraft();
+      }
+    }, 300); // 300ms debounce
+    
+    return () => {
+      clearTimeout(debounceTimeout);
+    };
+  }, [extractedText, generatingDraft]);
   
   // Fixed height container for all states to prevent layout shift
   const containerClasses = "w-full max-w-4xl mx-auto min-h-[120px] flex items-center justify-center";
@@ -143,7 +175,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ extractedText, isLoading 
           <h2 className="text-black text-xl font-bold mb-4">Documentary Credit Draft</h2>
           
           <div className="bg-gray-50 text-black p-4 rounded-md mb-6 whitespace-pre-wrap font-mono text-sm">
-            {draftText}
+            {formatDisplayText(draftText)}
           </div>
           
           <div className="flex flex-wrap gap-4">

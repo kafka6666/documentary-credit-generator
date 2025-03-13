@@ -6,15 +6,24 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthForm from '@/components/AuthForm';
 import { signUp } from '@/lib/actions/index';
+import { createClient } from '@/utils/supabase/client';
+
+// Add export configuration to prevent static optimization
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export default function SignUp() {
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
   
   // Check for any success message stored in localStorage on component mount
   useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === 'undefined') return;
+    
     const storedMessage = localStorage.getItem('signUpSuccessMessage');
     if (storedMessage) {
       setMessage(storedMessage);
@@ -28,23 +37,74 @@ export default function SignUp() {
     setErrorMessage(null);
     setIsLoading(true);
     
-    // Create a FormData object to pass to the server action
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
-
     try {
+      // First, try a direct signup with the Supabase client to catch existing accounts
+      const { error: clientError } = await supabase.auth.signUp({
+        email,
+        password
+      });
+      
+      // If we detect an existing account error from client-side check
+      if (clientError && 
+         (clientError.message.includes("already registered") || 
+          clientError.message.includes("already in use") || 
+          clientError.message.includes("already exists"))) {
+        
+        // Show the account exists message and provide sign-in option
+        setMessage('You are already signed up with us. Please sign in here');
+        setIsLoading(false);
+        return;
+      } else if (clientError) {
+        // Handle other client-side errors that were removed
+        setErrorMessage(clientError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // If client-side signup attempt was successful (or server action is preferred),
+      // proceed with server action as a fallback or confirmation
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+
       const result = await signUp(formData);
       
-      if (result && 'error' in result) {
-        // Handle validation errors
-        setErrorMessage(result.error);
+      if (result && 'error' in result && result.error) {
+        // Handle validation errors from server action
+        if (result.error.includes("already registered") || 
+            result.error.includes("already in use") || 
+            result.error.includes("already exists")) {
+          
+          setMessage('You are already signed up with us. Please sign in here');
+        } else {
+          setErrorMessage(result.error);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Check for success message from server
+      if (result && 'success' in result && result.success) {
+        const successMsg = result.message || 'Account created successfully! Please sign in.';
+        
+        // For redirecting to sign-in page with a success message
+        if (router) {
+          // Store the message in localStorage for the sign-in page to pick up
+          localStorage.setItem('signUpRedirectMessage', successMsg);
+          
+          // Navigate to sign-in page
+          setIsLoading(false);
+          router.push('/auth/sign-in');
+          return;
+        }
+        
+        // Fallback if router isn't available
+        setMessage(successMsg);
         setIsLoading(false);
         return;
       }
       
-      // If we get here, it means the redirect didn't happen (client-side rendering)
-      // So we'll just set a default success message
+      // If we get here, it means a successful signup without a specific message
       const successMessage = 'Your account has been created! Check your email for the confirmation link.';
         
       // Store the success message in localStorage to persist across redirects
@@ -80,13 +140,18 @@ export default function SignUp() {
         {message ? (
           <div className="p-8 bg-black border border-gray-800 rounded-lg shadow-lg text-center">
             <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+              <div className={`w-16 h-16 ${message.includes("already signed up") ? "bg-yellow-500" : "bg-green-500"} rounded-full flex items-center justify-center`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  {message.includes("already signed up") 
+                    ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  }
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-bold mb-4 text-white">Success!</h2>
+            <h2 className="text-2xl font-bold mb-4 text-white">
+              {message.includes("already signed up") ? "Account Exists" : "Success!"}
+            </h2>
             <p className="mb-6 text-gray-300">{message}</p>
             <button
               onClick={() => router.push('/auth/sign-in')}

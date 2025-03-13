@@ -2,7 +2,6 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
 async function signIn(formData: FormData) {
@@ -35,14 +34,30 @@ async function signUp(formData: FormData) {
     password: formData.get('password') as string,
   };
 
-  const { error } = await supabase.auth.signUp(data);
+  // Try to sign up the user
+  const { data: signUpData, error } = await supabase.auth.signUp(data);
 
+  // Handle various error cases
   if (error) {
+    // Check for specific error messages related to existing users
+    if (error.message.toLowerCase().includes("already registered") || 
+        error.message.toLowerCase().includes("already in use") || 
+        error.message.toLowerCase().includes("already exists") ||
+        error.message.toLowerCase().includes("email already")) {
+      // Return a clear error instead of redirecting
+      return { error: "You are already signed up with us. Please sign in here" };
+    }
     return { error: error.message };
   }
 
-  // Instead of just returning success, redirect to sign-in with a query parameter
-  redirect('/auth/sign-in?fromSignup=true');
+  // If signUpData.user is null, it may indicate an existing account in some cases
+  // Supabase sometimes returns success with no user for existing accounts
+  if (!signUpData.user) {
+    return { error: "You are already signed up with us. Please sign in here" };
+  }
+
+  // Successful sign-up - redirect to sign-in
+  return { success: true, message: "Account created successfully! Please sign in." };
 }
 
 async function signOut() {

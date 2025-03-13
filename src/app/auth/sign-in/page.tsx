@@ -3,26 +3,55 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AuthForm from '@/components/AuthForm';
 import { createClient } from '@/utils/supabase/client';
+
+// Add export configuration to prevent static optimization
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
-  // Check if there's a signup success message
+  // Check for messages from different sources
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const fromSignup = params.get('fromSignup');
-
+    // Only run in browser environment
+    if (typeof window === 'undefined') return;
+    
+    // First check URL parameters (for backward compatibility)
+    const fromSignup = searchParams?.get('fromSignup');
+    const accountExists = searchParams?.get('accountExists');
+    
+    if (accountExists === 'true') {
+      setSuccessMessage('You are already signed up with us. Please sign in here');
+      return;
+    }
+    
     if (fromSignup === 'true') {
       setSuccessMessage('Account created successfully! Please sign in.');
+      return;
     }
-  }, []);
+    
+    // Then check localStorage for messages from the new flow
+    const signupMessage = localStorage.getItem('signUpRedirectMessage');
+    if (signupMessage) {
+      // If the message indicates an existing account, replace it with our standard message
+      if (signupMessage.toLowerCase().includes('already registered') || 
+          signupMessage.toLowerCase().includes('already exists') ||
+          signupMessage.toLowerCase().includes('already have an account')) {
+        setSuccessMessage('You are already signed up with us. Please sign in here');
+      } else {
+        setSuccessMessage(signupMessage);
+      }
+      localStorage.removeItem('signUpRedirectMessage');
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (email: string, password: string) => {
     // Clear any previous messages
@@ -79,6 +108,14 @@ export default function SignIn() {
     }
   };
 
+  // Determine if the success message is about an existing account
+  const isExistingAccountMessage = successMessage && (
+    successMessage.toLowerCase().includes('already signed up') || 
+    successMessage.toLowerCase().includes('already registered') || 
+    successMessage.toLowerCase().includes('already exists') ||
+    successMessage.toLowerCase().includes('already have an account')
+  );
+
   return (
     <div className="min-h-screen py-12 px-4 flex items-center justify-center bg-black">
       <div className="w-full max-w-md">
@@ -94,20 +131,29 @@ export default function SignIn() {
         </div>
 
         {successMessage && (
-          <div className="mb-6 p-3 bg-green-900 border border-green-700 text-white rounded flex items-center">
+          <div className={`mb-6 p-3 ${isExistingAccountMessage ? 'bg-yellow-900 border-yellow-700' : 'bg-green-900 border-green-700'} border text-white rounded flex items-center`}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2 text-green-400"
+              className={`h-5 w-5 mr-2 ${isExistingAccountMessage ? 'text-yellow-400' : 'text-green-400'}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
+              {isExistingAccountMessage ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              )}
             </svg>
             {successMessage}
           </div>
